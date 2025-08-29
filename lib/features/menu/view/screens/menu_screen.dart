@@ -23,8 +23,157 @@ class _MenuScreenState extends State<MenuScreen> {
   final _itemPositionsListener = ItemPositionsListener.create();
 
   late final MenuService _menuService;
-  List<Category> _categories = [];
-  Map<int, List<MenuItem>> _items = {};
+  final List<Category> _categories = [
+    Category(
+      id: 10,
+      name: 'Комбо',
+      sort: 0,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    Category(
+      id: 11,
+      name: 'Блюда',
+      sort: 1,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    Category(
+      id: 12,
+      name: 'Закуски',
+      sort: 2,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    Category(
+      id: 13,
+      name: 'Соусы',
+      sort: 3,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+  ];
+
+  final Map<int, List<MenuItem>> _items = {
+    10: [
+      MenuItem(
+        id: 100,
+        name: 'Пепси с фри',
+        price: 598,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/fries_pepsi.jpg",
+      ),
+    ],
+    11: [
+      MenuItem(
+        id: 110,
+        name: "Шаурма куриная",
+        price: 378,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/shaurm_chick.jpg",
+      ),
+      MenuItem(
+        id: 111,
+        name: "Шаурма классическая",
+        price: 438,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/shaurm_class.jpg",
+      ),
+      MenuItem(
+        id: 112,
+        name: "Шаурма с сыром",
+        price: 498,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/shaurm_cheese.jpg",
+      ),
+      MenuItem(
+        id: 113,
+        name: "Донер",
+        price: 698,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/doner.jpg",
+      ),
+      MenuItem(
+        id: 114,
+        name: "Чебуреки (2 шт)",
+        price: 358,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/chebureki.jpg",
+      ),
+    ],
+    12: [
+      MenuItem(
+        id: 120,
+        name: "Картофель фри",
+        price: 258,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/fries.jpg",
+      ),
+    ],
+    13: [
+      MenuItem(
+        id: 130,
+        name: "Сырный соус",
+        price: 98,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/sauce_cheese.jpg",
+      ),
+      MenuItem(
+        id: 131,
+        name: "Чесночный соус",
+        price: 98,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/sauce_garlic.jpg",
+      ),
+      MenuItem(
+        id: 132,
+        name: "Острый соус",
+        price: 98,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/sauce_spicy.jpg",
+      ),
+      MenuItem(
+        id: 133,
+        name: "Томатный соус",
+        price: 98,
+        isActive: true,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        imageUrl: "$baseUrl/upload/sauce_tomato.jpg",
+      ),
+    ],
+  };
   final Set<int> _collapsedCategories = {};
 
   bool _loading = true;
@@ -45,8 +194,8 @@ class _MenuScreenState extends State<MenuScreen> {
         itemsMap[cat.id] = await _menuService.fetchItems(categoryId: cat.id);
       }
       setState(() {
-        _categories = cats;
-        _items = itemsMap;
+        _categories.addAll(cats);
+        _items.addAll(itemsMap);
       });
     } finally {
       setState(() => _loading = false);
@@ -172,7 +321,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             curve: Curves.easeOutCubic,
                           );
                         },
-                        child: Text(cat.nameTranslations![lcl] ?? cat.name),
+                        child: Text(cat.name),
                       ),
                     );
                   }),
@@ -206,7 +355,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     Row(
                       children: [
                         Text(
-                          cat.nameTranslations![lcl] ?? cat.name,
+                          cat.name,
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         const Spacer(),
@@ -219,10 +368,10 @@ class _MenuScreenState extends State<MenuScreen> {
                     if (!collapsed) ...[
                       const SizedBox(height: 12),
                       ...items.map((item) => DishContainerShortcut(
-                        name: item.nameTranslations![lcl] ?? item.name,
+                        name: item.name,
                         price: item.price,
-                        assetImage: AppIcons.logoAppetite,
-                        description: item.descriptionTranslations![lcl] ?? 'Описание отсутсвует',
+                        imageUrl: item.imageUrl ?? '',
+                        description: item.descriptionTranslations?[lcl] ?? '',
                         onTap: () {
                           showModalBottomSheet(
                             context: context,
@@ -232,10 +381,10 @@ class _MenuScreenState extends State<MenuScreen> {
                                 heightFactor: 0.9,
                                 child: SingleChildScrollView(
                                   child: DishContainer(
-                                    image: AppIcons.logoAppetite,
-                                    name: (item.nameTranslations![lcl] ?? item.name),
+                                    imageUrl: item.imageUrl ?? '',
+                                    name: (item.nameTranslations?[lcl] ?? item.name),
                                     price: item.price,
-                                    description: item.descriptionTranslations![lcl] ?? "Не указан",
+                                    description: item.descriptionTranslations?[lcl] ?? "",
                                     additions: [],
                                     reductions: [],
                                   ),

@@ -1,10 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../widgets/widgets.dart';
 
 class DishContainerShortcut extends StatefulWidget {
   const DishContainerShortcut({super.key,
-    required this.name, required this.description, required this.price, required this.assetImage, this.onTap});
-  final AssetImage assetImage;
+    required this.name, required this.description, required this.price, required this.imageUrl, this.onTap});
+  final String imageUrl;
   final String name;
   final String description;
   final double price;
@@ -26,7 +27,17 @@ class _DishContainerShortcutState extends State<DishContainerShortcut> {
         width: screenWidth * 0.9,
         child: Row(
           children: [
-            Image(image: widget.assetImage, height: 35),
+            CachedNetworkImage(
+              imageUrl: widget.imageUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                height: 180,
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(),
+              ),
+              errorWidget: (context, url, error) =>
+              const Icon(Icons.broken_image, size: 80),
+            ),
             SizedBox(width: 16),
             Expanded(
               child: Column(

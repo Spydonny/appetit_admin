@@ -1,12 +1,12 @@
 import 'package:appetit_admin/core/core.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../services/menu_services.dart';
 
-// -------- твой контейнер --------
 class DishContainer extends StatefulWidget {
   const DishContainer({
     super.key,
-    required this.image,
+    required this.imageUrl,
     required this.name,
     required this.price,
     required this.description,
@@ -15,7 +15,7 @@ class DishContainer extends StatefulWidget {
     this.itemId, // 🔹 чтобы можно было апдейтить блюдо по ID
   });
 
-  final AssetImage image;
+  final String imageUrl;
   final String name;
   final double price;
   final String description;
@@ -171,7 +171,7 @@ class _DishContainerState extends State<DishContainer> {
           // Картинка + кнопка редактирования
           Stack(
             children: [
-              Image(image: widget.image, width: double.infinity, fit: BoxFit.cover),
+              CachedNetworkImage(imageUrl: widget.imageUrl),
               Positioned(
                 top: 8,
                 right: 8,
