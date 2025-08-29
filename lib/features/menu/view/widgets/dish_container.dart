@@ -1,4 +1,6 @@
+import 'package:appetit_admin/core/core.dart';
 import 'package:flutter/material.dart';
+import '../../services/menu_services.dart';
 
 // -------- твой контейнер --------
 class DishContainer extends StatefulWidget {
@@ -10,6 +12,7 @@ class DishContainer extends StatefulWidget {
     required this.description,
     required this.additions,
     required this.reductions,
+    this.itemId, // 🔹 чтобы можно было апдейтить блюдо по ID
   });
 
   final AssetImage image;
@@ -18,6 +21,7 @@ class DishContainer extends StatefulWidget {
   final String description;
   final List<Map<String, double>> additions;
   final List<Map<String, double>> reductions;
+  final int? itemId;
 
   @override
   State<DishContainer> createState() => _DishContainerState();
@@ -34,6 +38,8 @@ class _DishContainerState extends State<DishContainer> {
   final Set<String> selectedAdditions = {};
   final Set<String> selectedReductions = {};
 
+  late final MenuService _menuService;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +48,8 @@ class _DishContainerState extends State<DishContainer> {
     description = widget.description;
     additions = List.from(widget.additions);
     reductions = List.from(widget.reductions);
+
+    _menuService = getIt<MenuService>(); // 🔹 вместо sl
   }
 
   double get totalPrice {
@@ -78,12 +86,21 @@ class _DishContainerState extends State<DishContainer> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Отмена")),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 setState(() {
                   name = nameCtrl.text;
                   price = double.tryParse(priceCtrl.text) ?? price;
                   description = descCtrl.text;
                 });
+
+                if (widget.itemId != null) {
+                  await _menuService.updateMenuItem(widget.itemId!, {
+                    "title": {"ru": name}, // тут можно локализацию
+                    "price": price,
+                    "description": {"ru": description},
+                  });
+                }
+
                 Navigator.pop(context);
               },
               child: const Text("Сохранить"),
@@ -114,7 +131,7 @@ class _DishContainerState extends State<DishContainer> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Отмена")),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final title = nameCtrl.text.trim();
                 final value = double.tryParse(priceCtrl.text) ?? 0;
                 if (title.isNotEmpty) {
@@ -125,6 +142,13 @@ class _DishContainerState extends State<DishContainer> {
                       reductions.add({title: value});
                     }
                   });
+
+                  if (widget.itemId != null) {
+                    await _menuService.updateMenuItem(widget.itemId!, {
+                      "additions": additions,
+                      "reductions": reductions,
+                    });
+                  }
                 }
                 Navigator.pop(context);
               },
@@ -139,7 +163,6 @@ class _DishContainerState extends State<DishContainer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final screenWidth = MediaQuery.sizeOf(context).width;
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -178,28 +201,14 @@ class _DishContainerState extends State<DishContainer> {
 
                 // Блок "Добавить вкуса"
                 _buildGrid(theme, "Добавить вкуса", additions, selectedAdditions,
-                        (title) => setState(() {
-                      selectedAdditions.toggle(title);
-                    }),
+                        (title) => setState(() => selectedAdditions.toggle(title)),
                     onAddPressed: () => _addModification(true)),
 
                 // Блок "Убрать лишнее"
                 _buildGrid(theme, "Убрать лишнее", reductions, selectedReductions,
-                        (title) => setState(() {
-                      selectedReductions.toggle(title);
-                    }),
+                        (title) => setState(() => selectedReductions.toggle(title)),
                     onAddPressed: () => _addModification(false)),
               ],
-            ),
-          ),
-
-          // Количество и кнопка
-          SizedBox(
-            width: screenWidth,
-            child: _QuantityRow(
-              quantity: quantity,
-              onQuantityChanged: (newQuantity) => setState(() => quantity = newQuantity),
-              total: totalPrice,
             ),
           ),
         ],
@@ -272,58 +281,7 @@ class _DishContainerState extends State<DishContainer> {
   }
 }
 
-// ------------------ Quantity ------------------
-class _QuantityRow extends StatelessWidget {
-  const _QuantityRow({
-    super.key,
-    required this.quantity,
-    required this.onQuantityChanged,
-    required this.total,
-  });
-
-  final int quantity;
-  final ValueChanged<int> onQuantityChanged;
-  final double total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // qty
-          Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  if (quantity > 1) onQuantityChanged(quantity - 1);
-                },
-                icon: const Icon(Icons.remove),
-              ),
-              Text('$quantity', style: Theme.of(context).textTheme.titleMedium),
-              IconButton(
-                onPressed: () => onQuantityChanged(quantity + 1),
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
-
-          ElevatedButton(
-            onPressed: () {
-              // TODO: добавить в корзину
-            },
-            child: Text("Добавить • ${total.toStringAsFixed(0)}₸"),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ------------------ extension ------------------
 extension _Toggle<T> on Set<T> {
-  void toggle(T value) {
-    contains(value) ? remove(value) : add(value);
-  }
+  void toggle(T value) => contains(value) ? remove(value) : add(value);
 }

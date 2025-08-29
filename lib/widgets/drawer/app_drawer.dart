@@ -8,6 +8,8 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final items = _getMenuItems();
+
     return Drawer(
       backgroundColor: theme.scaffoldBackgroundColor,
       child: ListView(
@@ -28,30 +30,13 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.restaurant_menu,
-            title: 'Меню',
-            route: '/menu',
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.shopping_cart,
-            title: 'Заказы',
-            route: '/orders',
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.analytics,
-            title: 'Аналитика',
-            route: '/analytics',
-          ),
-          _buildDrawerItem(
-            context,
-            icon: Icons.campaign,
-            title: 'Маркетинг',
-            route: '/marketing',
-          ),
+          for (final item in items)
+            _buildDrawerItem(
+              context,
+              icon: item.icon,
+              title: item.title,
+              route: item.route,
+            ),
         ],
       ),
     );
@@ -72,6 +57,23 @@ class AppDrawer extends StatelessWidget {
       },
     );
   }
+
+  /// Все пункты меню для всех
+  List<_DrawerItem> _getMenuItems() {
+    return [
+      _DrawerItem(Icons.restaurant_menu, 'Меню', '/menu'),
+      _DrawerItem(Icons.shopping_cart, 'Заказы', '/orders'),
+      _DrawerItem(Icons.analytics, 'Аналитика', '/analytics'),
+      _DrawerItem(Icons.campaign, 'Маркетинг', '/marketing'),
+      _DrawerItem(Icons.work_history, 'Сотрудники', '/employees'),
+    ];
+  }
 }
 
+class _DrawerItem {
+  final IconData icon;
+  final String title;
+  final String route;
 
+  const _DrawerItem(this.icon, this.title, this.route);
+}

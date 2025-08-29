@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
-import '../../../widgets/widgets.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:image_picker/image_picker.dart';
-
+import '../../../widgets/containers/default_container.dart';
+import '../data/promo_data.dart';
+import '../data/push_data.dart';
+import '../service/marketing_service.dart';
 
 class MarketingScreen extends StatefulWidget {
   const MarketingScreen({super.key});
@@ -12,14 +15,36 @@ class MarketingScreen extends StatefulWidget {
 }
 
 class _MarketingScreenState extends State<MarketingScreen> {
-  // фиктивные данные
-  List<String> promoCodes = ["PIZZA10", "SUMMER2025"];
+  List<PromoOut> promos = [];
   List<Map<String, dynamic>> banners = [
     {"title": "Скидка -20%", "image": null}
   ];
-  List<String> notifications = ["2 по цене 1 на пиццу!", "С Днём рождения! 🎉"];
+  List<String> notifications = [];
 
   final ImagePicker _picker = ImagePicker();
+  bool _isLoadingPromos = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPromos();
+  }
+
+  Future<void> _loadPromos() async {
+    setState(() => _isLoadingPromos = true);
+    try {
+      final list = await GetIt.I<MarketingService>().listPromocodes();
+      setState(() {
+        promos = list;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Ошибка загрузки промокодов: $e")),
+      );
+    } finally {
+      setState(() => _isLoadingPromos = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,18 +67,26 @@ class _MarketingScreenState extends State<MarketingScreen> {
             children: [
               _buildSection(
                 title: "Промокоды и скидки",
-                onAdd: () {
-                  _showAddDialog("Промокод", promoCodes, (value) {
-                    setState(() => promoCodes.add(value));
-                  });
-                },
-                items: promoCodes
+                onAdd: () => _showGeneratePromoDialog(),
+                items: _isLoadingPromos
+                    ? [const Center(child: CircularProgressIndicator())]
+                    : promos.isEmpty
+                    ? [const Text("Нет промокодов", style: TextStyle(color: Colors.grey))]
+                    : promos
                     .map((e) => ListTile(
-                  title: Text(e),
+                  title: Text(e.code),
+                  subtitle: Text('${e.value} ${e.kind == 'percent' ? '%' : ''}'),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      setState(() => promoCodes.remove(e));
+                    onPressed: () async {
+                      try {
+                        await GetIt.I<MarketingService>().deletePromocode(e.code);
+                        _loadPromos();
+                      } catch (err) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Ошибка удаления: $err")),
+                        );
+                      }
                     },
                   ),
                 ))
@@ -84,11 +117,7 @@ class _MarketingScreenState extends State<MarketingScreen> {
               ),
               _buildSection(
                 title: "Push-уведомления",
-                onAdd: () {
-                  _showAddDialog("Push-уведомление", notifications, (value) {
-                    setState(() => notifications.add(value));
-                  });
-                },
+                onAdd: () => _showSendPushDialog(),
                 items: notifications
                     .map((e) => ListTile(
                   title: Text(e),
@@ -107,7 +136,6 @@ class _MarketingScreenState extends State<MarketingScreen> {
       },
     );
   }
-
 
   /// 🔹 Общая секция
   Widget _buildSection({
@@ -149,33 +177,124 @@ class _MarketingScreenState extends State<MarketingScreen> {
     );
   }
 
-  /// 🔹 Диалог добавления (текстовый)
-  void _showAddDialog(
-      String title, List<String> target, Function(String) onSave) {
-    final controller = TextEditingController();
+  /// 🔹 Диалог генерации промокода
+  void _showGeneratePromoDialog() {
+    final prefixController = TextEditingController();
+    final valueController = TextEditingController(text: "10");
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Добавить $title"),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: "$title..."),
-        ),
-        actions: [
-          TextButton(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Сгенерировать промокоды"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: prefixController,
+                decoration: const InputDecoration(labelText: "Префикс (например: PIZZA)"),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: valueController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Скидка (%)"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Отмена")),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                onSave(controller.text.trim());
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Сохранить"),
-          )
-        ],
-      ),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (prefixController.text.trim().isEmpty) return;
+
+                final req = PromoGenerateRequest(
+                  prefix: prefixController.text.trim().toUpperCase(),
+                  value: double.tryParse(valueController.text) ?? 10.0,
+                  kind: "percent",
+                );
+
+                try {
+                  await GetIt.I<MarketingService>().generatePromos(req);
+                  Navigator.pop(context);
+                  _loadPromos();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Ошибка: $e")),
+                  );
+                }
+              },
+              child: const Text("Сгенерировать"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 🔹 Диалог отправки push
+  void _showSendPushDialog() {
+    final titleController = TextEditingController();
+    final bodyController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Отправить push-уведомление"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: "Заголовок"),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bodyController,
+                decoration: const InputDecoration(labelText: "Сообщение"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Отмена"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.trim().isEmpty ||
+                    bodyController.text.trim().isEmpty) {
+                  return;
+                }
+
+                final req = AdminPushRequest(
+                  title: titleController.text.trim(),
+                  body: bodyController.text.trim(),
+                );
+
+                try {
+                  final res = await GetIt.I<MarketingService>().sendPushNotification(req);
+
+                  setState(() {
+                    notifications.add("${req.title}: ${req.body}");
+                  });
+
+                  Navigator.pop(context);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Ошибка: $e")),
+                  );
+                }
+              },
+              child: const Text("Отправить"),
+            ),
+          ],
+        );
+      },
     );
   }
 

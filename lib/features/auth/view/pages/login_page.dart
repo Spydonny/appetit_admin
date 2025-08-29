@@ -1,9 +1,9 @@
-import 'package:easy_localization/easy_localization.dart';
+import 'package:appetit_admin/features/auth/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../widgets/widgets.dart';
-import '../../../../core/theme/app_icons.dart';
+import '../../../../core/core.dart';
 import '../widgets/widgets.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,11 +15,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final logoAppetite = AppIcons.logoAppetite;
 
-  final phoneCtrl = TextEditingController();
+  final loginCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
 
   void _login() {
-    // TODO: API login
+    getIt<AuthService>().login(emailOrPhone: loginCtrl.text, password: passwordCtrl.text);
+    context.go('/menu');
   }
 
   @override
@@ -28,9 +29,8 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const SizedBox(),
-            ChangeLanguageRow(),
+          children: const [
+            SizedBox(),
           ],
         ),
       ),
@@ -44,28 +44,27 @@ class _LoginPageState extends State<LoginPage> {
                 Image(image: logoAppetite, height: 50),
                 const SizedBox(height: 16),
 
-                Text("login".tr(),
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Вход",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 16),
 
                 InsetTextField(
-                  controller: phoneCtrl,
-                  hintText: "phone".tr(),
-                  keyboardType: TextInputType.phone,
+                  controller: loginCtrl,
+                  hintText: "Логин",
                 ),
                 const SizedBox(height: 8),
                 InsetTextField(
                   controller: passwordCtrl,
-                  hintText: "password".tr(),
+                  hintText: "Пароль",
                   obscureText: true,
                 ),
                 const SizedBox(height: 12),
                 AuthButton(
                   onPressed: _login,
-                  child: Text("login".tr()),
+                  child: const Text("Войти"),
                 ),
-
               ],
             ),
           ),
